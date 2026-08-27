@@ -1,0 +1,14 @@
+{
+  "name": "有序 · 个人节奏规划",
+  "short_name": "有序",
+  "description": "把项目、今日清单、课表、习惯和想法放在一个安静的地方。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f0e7",
+  "theme_color": "#6f7c62",
+  "lang": "zh-CN",
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
