@@ -8,30 +8,10 @@ type Project={id:number;name:string;color:string;mainline:string;note:string;tod
 type Milestone={id:number;date:string;title:string;hot:boolean};
 type Habit={id:number;title:string;day:number;period:number;span:number;startDate:string;endDate:string};
 type Idea={id:number;title:string;category:'想法'|'书'|'电影'|'文章'|'人生思考';note:string};
-const taskSeed:Task[]=[
- {id:1,title:'整理 λ=0.2–0.5 的实验配置',project:'ICLR 2026',minutes:45,done:false,projectId:1,projectTodoId:1001},
- {id:2,title:'跑一组 fake loss 对比并记录结果',project:'ICLR 2026',minutes:90,done:false,projectId:1,projectTodoId:1002},
- {id:3,title:'体育补考：练习 / 确认时间地点',project:'开学准备',minutes:30,done:false}
-];
-const courseSeed:Course[]=[
- {id:101,day:1,period:3,span:2,title:'概统',kind:'course'},{id:102,day:4,period:3,span:2,title:'概统',kind:'course'},
- {id:103,day:1,period:6,span:1,title:'体育',kind:'course'},{id:104,day:2,period:6,span:2,title:'数电',kind:'course'},
- {id:105,day:4,period:6,span:2,title:'微波',kind:'course'},{id:106,day:1,period:8,span:2,title:'微波',kind:'course'},
- {id:107,day:2,period:8,span:3,title:'DSP',kind:'course'},{id:108,day:4,period:8,span:2,title:'数电',kind:'course'},
- {id:109,day:5,period:8,span:2,title:'模电2',kind:'course'},{id:110,day:2,period:11,span:4,title:'BEIE',kind:'course'}
-];
-const projectSeed:Project[]=[
- {id:1,name:'ICLR 2026',color:'#6f7c62',mainline:'λ 对比 → benchmark → 新文档图片实验',note:'当前主线',todos:[
-  {id:1001,title:'整理 λ=0.2–0.5 的实验配置',done:false},{id:1002,title:'跑一组 fake loss 对比并记录结果',done:false},
-  {id:1003,title:'寻找合适的图片生成 benchmark',done:false},{id:1004,title:'按学长新文档思路做图片实验',done:false}]},
- {id:2,name:'数学建模',color:'#c8795c',mainline:'赛前准备；9.10–13 集中投入',note:'9.10–13',todos:[]},
- {id:3,name:'国创赛',color:'#bc9c55',mainline:'任务范围暂定，先收集信息',note:'暂缓推进',todos:[]},
- {id:4,name:'OS 自学',color:'#667b91',mainline:'每周安排两次低压学习',note:'长期习惯',todos:[]}
-];
-const milestoneSeed:Milestone[]=[
- {id:1,date:'8.27–9.6',title:'论文实验主窗口',hot:false},{id:2,date:'9.7',title:'开学 · 体育补考周',hot:false},
- {id:3,date:'9.10–13',title:'数学建模比赛',hot:true},{id:4,date:'赛后',title:'恢复论文 + OS 节奏',hot:false}
-];
+const taskSeed:Task[]=[];
+const courseSeed:Course[]=[];
+const projectSeed:Project[]=[];
+const milestoneSeed:Milestone[]=[];
 const habitSeed:Habit[]=[];
 const ideaSeed:Idea[]=[];
 const days=['周一','周二','周三','周四','周五','周六','周日'];
@@ -43,7 +23,8 @@ const addDays=(d:Date,n:number)=>{const x=new Date(d);x.setDate(x.getDate()+n);r
 export default function Home(){
  const[tasks,setTasks]=useState<Task[]>(taskSeed),[projects,setProjects]=useState<Project[]>(projectSeed),[milestones,setMilestones]=useState<Milestone[]>(milestoneSeed);
  const[habits,setHabits]=useState<Habit[]>(habitSeed),[ideas,setIdeas]=useState<Idea[]>(ideaSeed);
- const[schedules,setSchedules]=useState<Record<string,Course[]>>({}),[weekStart,setWeekStart]=useState(()=>startOfWeek(new Date(2026,7,27)));
+ const[schedules,setSchedules]=useState<Record<string,Course[]>>({}),[weekStart,setWeekStart]=useState(()=>startOfWeek(new Date()));
+ const[now,setNow]=useState(()=>new Date());
  const[input,setInput]=useState(''),[loaded,setLoaded]=useState(false);
  const[courseEdit,setCourseEdit]=useState<Course|null>(null),[taskEdit,setTaskEdit]=useState<Task|null>(null),[projectEdit,setProjectEdit]=useState<Project|null>(null),[milestoneEdit,setMilestoneEdit]=useState<Milestone|null>(null);
  const[habitEdit,setHabitEdit]=useState<Habit|null>(null),[ideaEdit,setIdeaEdit]=useState<Idea|null>(null);
@@ -53,11 +34,12 @@ export default function Home(){
  const habitCourses:Course[]=habits.filter(h=>weekKey>=keyOf(startOfWeek(new Date(h.startDate+'T00:00:00')))&&weekKey<=keyOf(startOfWeek(new Date(h.endDate+'T00:00:00')))).map(h=>({id:900000+h.id,day:h.day,period:h.period,span:h.span,title:h.title,kind:'habit',habitId:h.id}));
  const courses=[...manualCourses,...habitCourses];
  useEffect(()=>{if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('sw.js',document.baseURI).pathname);const t=localStorage.getItem('daylight-tasks'),w=localStorage.getItem('daylight-weekly-schedules'),p=localStorage.getItem('daylight-projects'),m=localStorage.getItem('daylight-milestones'),h=localStorage.getItem('daylight-habits'),i=localStorage.getItem('daylight-ideas');
-  if(t){const parsed=JSON.parse(t) as Task[];setTasks(parsed.map(x=>x.title==='整理 λ=0.2–0.5 的实验配置'?{...x,projectId:1,projectTodoId:1001}:x.title==='跑一组 fake loss 对比并记录结果'?{...x,projectId:1,projectTodoId:1002}:x))}
+  if(t)setTasks(JSON.parse(t));
   if(w){const parsed=JSON.parse(w) as Record<string,Course[]>;Object.keys(parsed).forEach(k=>{if(k<termStart)parsed[k]=parsed[k].filter(c=>c.kind==='self')});setSchedules(parsed)}
-  if(p){const parsed=JSON.parse(p) as Array<Project&{next?:string}>;setProjects(parsed.map(x=>({id:x.id,name:x.name,color:x.color,mainline:x.mainline??x.next??'',note:x.note,todos:Array.isArray(x.todos)?x.todos:(x.id===1?projectSeed[0].todos:[])})))}
+  if(p){const parsed=JSON.parse(p) as Array<Project&{next?:string}>;setProjects(parsed.map(x=>({id:x.id,name:x.name,color:x.color,mainline:x.mainline??x.next??'',note:x.note,todos:Array.isArray(x.todos)?x.todos:[]})))}
   if(m)setMilestones(JSON.parse(m));if(h)setHabits(JSON.parse(h));if(i)setIdeas(JSON.parse(i));setLoaded(true)},[]);
  useEffect(()=>{if(!loaded)return;localStorage.setItem('daylight-tasks',JSON.stringify(tasks));localStorage.setItem('daylight-weekly-schedules',JSON.stringify(schedules));localStorage.setItem('daylight-projects',JSON.stringify(projects));localStorage.setItem('daylight-milestones',JSON.stringify(milestones));localStorage.setItem('daylight-habits',JSON.stringify(habits));localStorage.setItem('daylight-ideas',JSON.stringify(ideas))},[tasks,schedules,projects,milestones,habits,ideas,loaded]);
+ useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),60000);return()=>window.clearInterval(timer)},[]);
  const minutes=useMemo(()=>tasks.filter(t=>!t.done).reduce((a,t)=>a+t.minutes,0),[tasks]);
  const setWeekCourses=(next:Course[])=>setSchedules({...schedules,[weekKey]:next.filter(c=>c.kind!=='habit')});
  const addTask=()=>{if(!input.trim())return;setTasks([...tasks,{id:Date.now(),title:input.trim(),project:'临时收件箱',minutes:30,done:false}]);setInput('')};
@@ -72,27 +54,29 @@ export default function Home(){
  const weekEnd=addDays(weekStart,6);
  const weekOffset=Math.round((weekStart.getTime()-new Date(2026,8,7).getTime())/604800000);
  const weekLabel=weekOffset<0?`暑假第${11+weekOffset}周`:`秋季学期第${weekOffset+1}周`;
+ const dateLabel=new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(now);
+ const greeting=now.getHours()<11?'早上好':now.getHours()<18?'下午好':'晚上好';
  return <main>
-  <header className="topbar"><div className="brand"><span className="sun">☀</span><strong>有序</strong></div><div className="date">2026年8月27日 · 星期四</div><button className="quiet" onClick={()=>document.getElementById('inbox')?.focus()}>＋ 快速记一件事</button></header>
+  <header className="topbar"><div className="brand"><span className="sun">☀</span><strong>有序</strong></div><div className="date">{dateLabel}</div><button className="quiet" onClick={()=>document.getElementById('inbox')?.focus()}>＋ 快速记一件事</button></header>
   <div className="shell"><aside className="sidebar"><p className="eyebrow">这段时间</p><h2>先稳住节奏，<br/>再完成大事。</h2><nav><a className="active" href="#today">今天</a><a href="#schedule">每周课表</a><a href="#projects">项目全景</a><a href="#habits">养习惯</a><a href="#ideas">奇思妙想</a><a href="#rhythm">近期节奏</a></nav><div className="rule"><span>规划原则</span><p>每天 3 件关键事。做完就算今天成功，不用清空所有待办。</p></div></aside>
   <section className="content">
-   <section id="today" className="hero"><div><p className="eyebrow green">今天只看这里</p><h1>下午好。今天的容量<br/>已经替你守住了。</h1><p className="sub">安排约 {minutes} 分钟，留出缓冲。不需要同时想完所有项目。</p></div><div className="capacity"><div className="ring"><span>{tasks.filter(t=>!t.done).length}</span><small>件关键事</small></div></div></section>
-   <section className="today-card"><div className="section-head"><div><p className="eyebrow">TODAY · 今日清单</p><h3>完成这些，今天就够了</h3></div><span>{tasks.filter(t=>t.done).length}/{tasks.length} 已完成</span></div><div className="tasks">{tasks.map((task,i)=><div className={'task '+(task.done?'done':'')} key={task.id}><button aria-label="标记完成" className="check" onClick={()=>toggleTask(task)}>{task.done?'✓':i+1}</button><button className="task-copy editable-copy" onClick={()=>setTaskEdit({...task})}><b>{task.title}</b><span>{task.project}{task.projectTodoId?' · 已关联项目待办':''}</span></button><span className="duration">{task.minutes} 分钟</span><button className="focus" onClick={()=>setTaskEdit({...task})}>编辑</button></div>)}</div><div className="inbox-row"><input id="inbox" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="新增一件今天要做的事"/><button onClick={addTask}>添加</button></div></section>
+   <section id="today" className="hero"><div><p className="eyebrow green">今天只看这里</p><h1>{greeting}。今天的容量<br/>已经替你守住了。</h1><p className="sub">安排约 {minutes} 分钟，留出缓冲。不需要同时想完所有项目。</p></div><div className="capacity"><div className="ring"><span>{tasks.filter(t=>!t.done).length}</span><small>件关键事</small></div></div></section>
+   <section className="today-card"><div className="section-head"><div><p className="eyebrow">TODAY · 今日清单</p><h3>完成这些，今天就够了</h3></div><span>{tasks.filter(t=>t.done).length}/{tasks.length} 已完成</span></div><div className="tasks">{tasks.length===0?<p className="empty-note">今天还没有安排。先写下一件最想推进的小事。</p>:tasks.map((task,i)=><div className={'task '+(task.done?'done':'')} key={task.id}><button aria-label="标记完成" className="check" onClick={()=>toggleTask(task)}>{task.done?'✓':i+1}</button><button className="task-copy editable-copy" onClick={()=>setTaskEdit({...task})}><b>{task.title}</b><span>{task.project}{task.projectTodoId?' · 已关联项目待办':''}</span></button><span className="duration">{task.minutes} 分钟</span><button className="focus" onClick={()=>setTaskEdit({...task})}>编辑</button></div>)}</div><div className="inbox-row"><input id="inbox" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addTask()} placeholder="新增一件今天要做的事"/><button onClick={addTask}>添加</button></div></section>
 
-   <section id="schedule" className="schedule-section"><div className="section-head schedule-title"><div><p className="eyebrow">WEEK · {weekLabel}</p><h3>{fmt(weekStart)}–{fmt(weekEnd)} 的安排</h3></div><div className="week-nav"><button onClick={()=>setWeekStart(addDays(weekStart,-7))}>← 上周</button><button onClick={()=>setWeekStart(startOfWeek(new Date(2026,7,27)))}>本周</button><button onClick={()=>setWeekStart(addDays(weekStart,7))}>下周 →</button></div></div>
+   <section id="schedule" className="schedule-section"><div className="section-head schedule-title"><div><p className="eyebrow">WEEK · {weekLabel}</p><h3>{fmt(weekStart)}–{fmt(weekEnd)} 的安排</h3></div><div className="week-nav"><button onClick={()=>setWeekStart(addDays(weekStart,-7))}>← 上周</button><button onClick={()=>setWeekStart(startOfWeek(new Date()))}>本周</button><button onClick={()=>setWeekStart(addDays(weekStart,7))}>下周 →</button></div></div>
     <div className="schedule-wrap"><div className="schedule-grid">
      <div className="corner sticky-col" style={{gridColumn:1,gridRow:1}}>节次</div>
-     {days.map((d,i)=>{const date=addDays(weekStart,i);return <div className={'day-head '+(keyOf(date)==='2026-08-27'?'is-today':'')} style={{gridColumn:i+2,gridRow:1}} key={d}><b>{d}</b><small>{fmt(date)}</small></div>})}
+     {days.map((d,i)=>{const date=addDays(weekStart,i);return <div className={'day-head '+(keyOf(date)===keyOf(now)?'is-today':'')} style={{gridColumn:i+2,gridRow:1}} key={d}><b>{d}</b><small>{fmt(date)}</small></div>})}
      {Array.from({length:14},(_,pi)=>{const period=pi+1;return <div className={'period sticky-col '+(period===6?'lunch-gap':'')+(period===11?' evening-gap':'')} style={{gridColumn:1,gridRow:period+1}} key={'p'+period}>{period}</div>})}
      {Array.from({length:14},(_,pi)=>days.map((_,di)=>{const period=pi+1,day=di+1;return <button aria-label={days[di]+'第'+period+'节'} className={'schedule-slot '+(period===6?'lunch-gap':'')+(period===11?' evening-gap':'')} style={{gridColumn:day+1,gridRow:period+1}} key={'slot-'+day+'-'+period} onClick={()=>openCell(day,period)}/> }))}
      {courses.map(c=><button className={'course-block '+c.kind} key={c.kind+'-'+c.id} style={{gridColumn:c.day+1,gridRow:`${c.period+1} / span ${c.span}`}} onClick={()=>openCell(c.day,c.period)}><b>{c.title}</b><small>{c.span>1?c.span+' 节':''}{c.kind==='habit'?' · 习惯':''}</small></button>)}
     </div></div><div className="schedule-legend"><span><i className="course-dot"/>学校课程</span><span><i className="self-dot"/>自己的安排</span><span><i className="habit-dot"/>习惯</span><button onClick={()=>setWeekCourses(defaultCourses.map(c=>({...c})))}>恢复本周</button></div>
    </section>
 
-   <section id="projects" className="projects-section"><div className="section-head"><div><p className="eyebrow">PROJECTS · 项目全景</p><h3>沿着主线，一步一步推进</h3></div><button className="add-small" onClick={()=>setProjectEdit({id:Date.now(),name:'',color:'#6f7c62',mainline:'',note:'',todos:[]})}>＋ 新建项目</button></div><div className="project-grid">{projects.map(p=>{const done=p.todos.filter(t=>t.done).length,total=p.todos.length;return <button className="project project-button" key={p.id} onClick={()=>setProjectEdit({...p,todos:p.todos.map(t=>({...t}))})} style={{'--accent':p.color} as React.CSSProperties}><div className="project-top"><span className="dot"/><small>{p.note||'点击进入'}</small></div><h4>{p.name}</h4><p>{p.mainline||'还没有设置主线'}</p>{total>0?<><div className="bar"><i style={{width:(done/total*100)+'%'}}/></div><span className="percent">{done}/{total} 项待办已完成 · 点击进入</span></>:<span className="percent no-progress">打开项目添加待办</span>}</button>})}</div></section>
+   <section id="projects" className="projects-section"><div className="section-head"><div><p className="eyebrow">PROJECTS · 项目全景</p><h3>沿着主线，一步一步推进</h3></div><button className="add-small" onClick={()=>setProjectEdit({id:Date.now(),name:'',color:'#6f7c62',mainline:'',note:'',todos:[]})}>＋ 新建项目</button></div><div className="project-grid">{projects.length===0?<button className="empty-card" onClick={()=>setProjectEdit({id:Date.now(),name:'',color:'#6f7c62',mainline:'',note:'',todos:[]})}><span>＋</span><b>建立第一个项目</b><small>把长期目标拆成可以完成的待办</small></button>:projects.map(p=>{const done=p.todos.filter(t=>t.done).length,total=p.todos.length;return <button className="project project-button" key={p.id} onClick={()=>setProjectEdit({...p,todos:p.todos.map(t=>({...t}))})} style={{'--accent':p.color} as React.CSSProperties}><div className="project-top"><span className="dot"/><small>{p.note||'点击进入'}</small></div><h4>{p.name}</h4><p>{p.mainline||'还没有设置主线'}</p>{total>0?<><div className="bar"><i style={{width:(done/total*100)+'%'}}/></div><span className="percent">{done}/{total} 项待办已完成 · 点击进入</span></>:<span className="percent no-progress">打开项目添加待办</span>}</button>})}</div></section>
    <section id="habits" className="habits-section"><div className="section-head"><div><p className="eyebrow">HABITS · 养习惯</p><h3>让想坚持的事，准时出现在每一周</h3></div><button className="add-small" onClick={()=>setHabitEdit({id:Date.now(),title:'',day:1,period:1,span:1,startDate:weekKey,endDate:keyOf(addDays(weekStart,27))})}>＋ 新习惯</button></div><div className="habit-grid">{habits.length===0?<button className="empty-card" onClick={()=>setHabitEdit({id:Date.now(),title:'',day:1,period:1,span:1,startDate:weekKey,endDate:keyOf(addDays(weekStart,27))})}><span>＋</span><b>安排第一个习惯</b><small>例如每周两次 OS 自学</small></button>:habits.map(h=><button className="habit-card" key={h.id} onClick={()=>setHabitEdit({...h})}><span className="habit-mark">↻</span><div><b>{h.title}</b><p>{days[h.day-1]} · 第 {h.period}–{h.period+h.span-1} 节</p><small>{h.startDate.replaceAll('-','.')} — {h.endDate.replaceAll('-','.')}</small></div></button>)}</div></section>
    <section id="ideas" className="ideas-section"><div className="section-head"><div><p className="eyebrow">IDEAS · 奇思妙想</p><h3>先把闪过脑海的东西接住</h3></div><button className="add-small" onClick={()=>setIdeaEdit({id:Date.now(),title:'',category:'想法',note:''})}>＋ 记一个</button></div><div className="idea-grid">{ideas.length===0?<button className="empty-card" onClick={()=>setIdeaEdit({id:Date.now(),title:'',category:'想法',note:''})}><span>✦</span><b>这里还很空，正好用来胡思乱想</b><small>想看的书、电影、文章和人生问题都可以放进来</small></button>:ideas.map(i=><button className="idea-card" key={i.id} onClick={()=>setIdeaEdit({...i})}><small>{i.category}</small><b>{i.title}</b><p>{i.note||'点开继续想'}</p></button>)}</div></section>
-   <section id="rhythm" className="timeline"><div className="section-head"><div><p className="eyebrow">RHYTHM · 近期节奏</p><h3>把真正会改变安排的节点放在这里</h3></div><button className="add-small" onClick={()=>setMilestoneEdit({id:Date.now(),date:'',title:'',hot:false})}>＋ 添加节点</button></div><div className="timeline-row">{milestones.map(m=><button key={m.id} className={m.hot?'hot':''} onClick={()=>setMilestoneEdit({...m})}><b>{m.date}</b><span>{m.title}</span><small>点击编辑</small></button>)}</div></section>
+   <section id="rhythm" className="timeline"><div className="section-head"><div><p className="eyebrow">RHYTHM · 近期节奏</p><h3>把真正会改变安排的节点放在这里</h3></div><button className="add-small" onClick={()=>setMilestoneEdit({id:Date.now(),date:'',title:'',hot:false})}>＋ 添加节点</button></div><div className="timeline-row">{milestones.length===0?<button className="empty-card" onClick={()=>setMilestoneEdit({id:Date.now(),date:'',title:'',hot:false})}><span>＋</span><b>添加近期节点</b><small>考试、截止日期和忙碌阶段都可以放在这里</small></button>:milestones.map(m=><button key={m.id} className={m.hot?'hot':''} onClick={()=>setMilestoneEdit({...m})}><b>{m.date}</b><span>{m.title}</span><small>点击编辑</small></button>)}</div></section>
   </section></div>
 
   {courseEdit&&<Modal title={days[courseEdit.day-1]+' · 第 '+courseEdit.period+' 节'} onClose={()=>setCourseEdit(null)}><label>名称<input autoFocus value={courseEdit.title} onChange={e=>setCourseEdit({...courseEdit,title:e.target.value})} placeholder="例如：OS 自学"/></label><div className="form-row"><label>开始节次<input type="number" min="1" max="14" value={courseEdit.period} onChange={e=>setCourseEdit({...courseEdit,period:+e.target.value})}/></label><label>持续节数<input type="number" min="1" max="4" value={courseEdit.span} onChange={e=>setCourseEdit({...courseEdit,span:+e.target.value})}/></label></div><label>类型<select value={courseEdit.kind} onChange={e=>setCourseEdit({...courseEdit,kind:e.target.value as Course['kind']})}><option value="course">学校课程</option><option value="self">自学 / 自己安排</option></select></label><Actions onDelete={()=>{setWeekCourses(courses.filter(c=>c.id!==courseEdit.id));setCourseEdit(null)}} onCancel={()=>setCourseEdit(null)} onSave={()=>{if(courseEdit.title.trim())setWeekCourses([...courses.filter(c=>c.id!==courseEdit.id),{...courseEdit,title:courseEdit.title.trim()}]);setCourseEdit(null)}}/></Modal>}
