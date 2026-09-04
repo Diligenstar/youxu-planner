@@ -24,5 +24,5 @@
 @media(max-width:650px){.habit-grid,.idea-grid{grid-template-columns:1fr}}
 
 /* Account and cloud sync */
-.top-actions{display:flex;align-items:center;gap:9px}.sync-button{border:1px solid #d0cabe;background:#faf8f2;color:#73796f;border-radius:99px;padding:10px 14px;font-size:10px;cursor:pointer}.sync-button.connected{background:#e7ebe1;border-color:#c8d0c0;color:#56634f}.sync-account{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:#edf0e7}.sync-account>span{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#6f7c62;color:white}.sync-account b{font-size:13px}.sync-account p{margin:4px 0 0;color:var(--muted);font-size:10px}.sync-explain{color:#777c76;font-size:11px;line-height:1.8}.auth-message{padding:10px 12px;border-radius:9px;background:#f2eee5;color:#776f63;font-size:10px;line-height:1.6}.empty-note{margin:0;padding:24px 2px;color:#94968e;font-size:11px;border-bottom:1px solid #e7e2d8}
-@media(max-width:650px){.top-actions .quiet{display:none}.sync-button{padding:9px 11px}.topbar{gap:8px}}
+.top-actions{display:flex;align-items:center;gap:9px}.empty-note{margin:0;padding:24px 2px;color:#94968e;font-size:11px;border-bottom:1px solid #e7e2d8}
+@media(max-width:650px){.top-actions .quiet{display:none}.topbar{gap:8px}}
