@@ -9,7 +9,13 @@ type Milestone={id:number;date:string;title:string;hot:boolean};
 type Habit={id:number;title:string;day:number;period:number;span:number;startDate:string;endDate:string};
 type Idea={id:number;title:string;category:'想法'|'书'|'电影'|'文章'|'人生思考';note:string};
 const taskSeed:Task[]=[];
-const courseSeed:Course[]=[];
+const courseSeed:Course[]=[
+ {id:101,day:1,period:3,span:2,title:'概统',kind:'course'},{id:102,day:4,period:3,span:2,title:'概统',kind:'course'},
+ {id:103,day:1,period:6,span:1,title:'体育',kind:'course'},{id:104,day:2,period:6,span:2,title:'数电',kind:'course'},
+ {id:105,day:4,period:6,span:2,title:'微波',kind:'course'},{id:106,day:1,period:8,span:2,title:'微波',kind:'course'},
+ {id:107,day:2,period:8,span:3,title:'DSP',kind:'course'},{id:108,day:4,period:8,span:2,title:'数电',kind:'course'},
+ {id:109,day:5,period:8,span:2,title:'模电2',kind:'course'},{id:110,day:2,period:11,span:4,title:'BEIE',kind:'course'}
+];
 const projectSeed:Project[]=[];
 const milestoneSeed:Milestone[]=[];
 const habitSeed:Habit[]=[];
