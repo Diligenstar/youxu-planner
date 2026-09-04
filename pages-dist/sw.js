@@ -1,4 +1,4 @@
-const CACHE='youxu-v4';
+const CACHE='youxu-v5';
 const BASE=self.registration.scope;
 const SHELL=[BASE,BASE+'manifest.webmanifest',BASE+'icon-192.png',BASE+'icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
