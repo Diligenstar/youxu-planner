@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "youxu-reminders",
+  "main": "index.mjs",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {"bindings": [{"name": "REMINDERS", "class_name": "ReminderDevice"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["ReminderDevice"]}],
+  "vars": {"SITE_ORIGIN": "https://diligenstar.github.io"}
+}
