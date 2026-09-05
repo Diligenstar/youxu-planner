@@ -24,8 +24,25 @@ const worker = {
         if (!match) response = json({error: '不存在的地址。'}, 404);
         else {
           if (Number(request.headers.get('Content-Length')) > 250000) return json({error: '内容过大。'}, 413);
+          // Buffer a bounded body before forwarding: early authentication failures
+          // must not leave the original request stream active after the response.
+          let body;
+          if (request.body) {
+            const reader = request.body.getReader(), chunks = [];
+            let size = 0;
+            while (true) {
+              const {done, value} = await reader.read();
+              if (done) break;
+              size += value.byteLength;
+              if (size > 250000) {await reader.cancel(); throw new Error('Request too large');}
+              chunks.push(value);
+            }
+            body = new Uint8Array(size);
+            let offset = 0;
+            for (const chunk of chunks) {body.set(chunk, offset); offset += chunk.byteLength;}
+          }
           const id = env.REMINDERS.idFromName(match[1]);
-          response = await env.REMINDERS.get(id).fetch(request);
+          response = await env.REMINDERS.get(id).fetch(new Request(request, {body}));
         }
       }
     } catch { response = json({error: '推送服务暂时不可用，请稍后重试。'}, 503); }
