@@ -22,7 +22,7 @@ export default function Home(){
   const today=dateKey(now),mode=data.modes[today]??'steady',active=currentTask(data,today);
   const review=data.reviews[today]??emptyReview(),due=actionableMilestones(data,today);
   const reminders=noteReminders(data,today);
-  const todayCourses=weekCourses(data,now).filter(c=>c.day===(now.getDay()||7));
+  const todayCourses=weekCourses(data,now).filter(c=>c.day===(now.getDay()||7)&&c.kind==='course');
   const pastReview=Object.entries(data.reviews).filter(([day,r])=>day<today&&r.next.trim()).sort(([a],[b])=>b.localeCompare(a))[0];
   const timeLeft=timer?Math.max(0,timer.end?Math.ceil((timer.end-now.getTime())/1000):timer.remaining):0;
   useEffect(()=>{let alive=true;queueMicrotask(()=>{if(!alive)return;try{
@@ -92,7 +92,7 @@ export default function Home(){
       <label>下次从哪里继续（可留空）<textarea value={review.next} onChange={e=>saveReview({next:e.target.value})} placeholder="给下次的自己留一句话"/></label>
       <details className="inline-details"><summary>记一句今天的感受</summary><textarea aria-label="今天的感受" value={review.feeling} onChange={e=>saveReview({feeling:e.target.value})}/></details>
       {reminders.filter(n=>n.when==='tomorrow').map((note,i)=><div className="date-note" key={i}><span>明天要记得</span><strong>{note.title}</strong>{note.preparation&&<p>{note.preparation}</p>}</div>)}
-      {(()=>{const tomorrow=addDays(now,1),m=actionableMilestones(data,dateKey(tomorrow))[0],c=weekCourses(data,tomorrow).find(c=>c.day===(tomorrow.getDay()||7));return (m||c)?<p className="review-reminder">明天的必要安排：{m?`${m.title}（${m.date} 截止）`:`${c!.title} · 第 ${c!.period} 节`}</p>:null})()}
+      {(()=>{const tomorrow=addDays(now,1),m=actionableMilestones(data,dateKey(tomorrow))[0],c=weekCourses(data,tomorrow).find(c=>c.day===(tomorrow.getDay()||7)&&c.kind==='course');return (m||c)?<p className="review-reminder">明天的必要安排：{m?`${m.title}（${m.date} 截止）`:`${c!.title} · 第 ${c!.period} 节`}</p>:null})()}
       <button className="primary full-width" onClick={()=>{update(d=>closeDay(d,today));setTimer(null);setReviewOpen(false);setNotice('今天已经收好，其他安排仍在原处。')}}>收好今天</button>
     </Modal>}
     {editor&&<Editors editor={editor} setEditor={setEditor} data={data} today={today} update={update} checkpoint={checkpoint} setNotice={setNotice} addTask={addTask} pick={pick}/>}

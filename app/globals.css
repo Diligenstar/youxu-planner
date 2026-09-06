@@ -16,3 +16,8 @@
 .push-settings{border-top:1px solid var(--line,#ddd);margin-top:24px;padding-top:20px}
 .push-settings p{font-size:14px;line-height:1.7}
 .push-times{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.course-block.break-block{padding:4px 6px;font-size:11px;line-height:1.2;margin-top:2px;margin-bottom:2px;z-index:4}
+.course-block.break-block strong{font-size:12px;-webkit-line-clamp:1}
+.course-block.break-block small{display:none}
+.term-check{margin:8px 0 18px}
+.term-check .list-row{width:100%;text-align:left}

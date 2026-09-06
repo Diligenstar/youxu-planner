@@ -2,8 +2,8 @@ export type Mode = 'steady' | 'sprint' | 'recovery';
 export type Task = {id:number; title:string; project:string; minutes:number; done:boolean; projectId?:number; projectTodoId?:number; plannedFor?:string; completedAt?:string; step?:string; startedAt?:string};
 export type Todo = {id:number; title:string; done:boolean};
 export type Project = {id:number; name:string; color:string; mainline:string; note:string; todos:Todo[]; status?:'active'|'waiting'|'paused'|'done'; progress?:string; next?:string; waiting?:string; revisit?:string};
-export type Course = {id:number; day:number; period:number; span:number; title:string; kind:'course'|'self'|'habit'; habitId?:number; location?:string; teacher?:string};
-export type Habit = {id:number; title:string; day:number; period:number; span:number; startDate:string; endDate:string};
+export type Course = {id:number; day:number; period:number; span:number; title:string; kind:'course'|'self'|'habit'; habitId?:number; location?:string; teacher?:string; breakTime?:'lunch'|'dinner'; note?:string};
+export type Habit = {id:number; title:string; day:number; period:number; span:number; startDate:string; endDate:string; breakTime?:'lunch'|'dinner'; note?:string};
 export type Milestone = {id:number; title:string; date:string; hot:boolean; action?:string; actionDate?:string; done?:boolean};
 export type Idea = {id:number; title:string; category:string; note:string};
 export type Review = {note:string; next:string; feeling:string; closedAt?:string};
@@ -26,11 +26,49 @@ export const newId=()=>Date.now()*1000+Math.floor(Math.random()*1000);
 export const emptyPlanner=():Planner=>({version:6,tasks:[],projects:[],schedules:{},habits:[],milestones:[],ideas:[],evidence:{},checkins:{},reviews:{},modes:{},current:{},courseNotes:{},termStart:'2026-09-07',legacy:{},dayNotes:{},appliedUpdates:[]});
 export function applyRequestedUpdates(data:Planner):Planner{
   const update='group-meeting-20260911-20270115';
-  if(data.appliedUpdates.includes(update))return data;
+  if(data.appliedUpdates.includes(update))return applyWeeklyPlan(data);
   const existing=data.habits.some(h=>h.title==='组会'&&h.day===5&&h.period===1&&h.span===2&&h.startDate==='2026-09-11'&&h.endDate==='2027-01-15');
   const meeting:Habit={id:newId(),title:'组会',day:5,period:1,span:2,startDate:'2026-09-11',endDate:'2027-01-15'};
   const notes=data.dayNotes['2026-12-04']??[];
-  return {...data,habits:existing?data.habits:[...data.habits,meeting],dayNotes:{...data.dayNotes,'2026-12-04':notes.includes('给组里买早饭')?notes:[...notes,'给组里买早饭']},appliedUpdates:[...data.appliedUpdates,update]};
+  return applyWeeklyPlan({...data,habits:existing?data.habits:[...data.habits,meeting],dayNotes:{...data.dayNotes,'2026-12-04':notes.includes('给组里买早饭')?notes:[...notes,'给组里买早饭']},appliedUpdates:[...data.appliedUpdates,update]});
+}
+export const WEEKLY_PLAN_UPDATE='weekly-rhythm-20260907-v1';
+const rhythm=(day:number,period:number,span:number,title:string,note:string,breakTime?:Habit['breakTime'])=>({day,period,span,title,note,...(breakTime?{breakTime}:{})});
+export const WEEKLY_PLAN=[
+  rhythm(1,1,1,'概统 · 预习复盘','先接上本周内容。'),
+  rhythm(1,2,1,'微波 · 预习复盘','先接上本周内容。'),
+  rhythm(1,11,2,'概统 · 作业','作业优先，没有作业就整理公式或例题。'),
+  rhythm(1,13,2,'微波 · 作业','作业优先，没有作业就整理公式或例题。'),
+  rhythm(2,1,1,'数电 · 预习复盘','抓本周重点。'),
+  rhythm(2,2,1,'DSP · 预习复盘','抓本周重点。'),
+  rhythm(2,6,2,'数电 · 作业','有作业写作业，没有作业就预习和复习。'),
+  rhythm(3,1,2,'DSP · 作业实验','作业、实验和 MATLAB 都放在这里。'),
+  rhythm(3,11,2,'数电 · 作业','接住周三数电课，留下下一步。'),
+  rhythm(3,13,2,'跑步 / 休息','根据身体状态选择，不要求占满时段。'),
+  rhythm(4,1,1,'概统 · 预习复盘','本周第二次回到这门课。'),
+  rhythm(4,2,1,'微波 · 预习复盘','本周第二次回到这门课。'),
+  rhythm(4,8,2,'概统 · 作业','用一个短块往前推进。'),
+  rhythm(4,11,2,'微波 · 作业','接住当前作业或实验的一小步。'),
+  rhythm(4,13,2,'跑步 / 休息','微波作业后恢复一下，不要求占满时段。'),
+  rhythm(5,3,3,'工位科研','沿用周五 1–2 节组会，会后在工位推进科研主线。'),
+  rhythm(5,6,2,'电子电路 2 · 预习复习','上课前热身；遇数电调课周，先查看冲突再调整。'),
+  rhythm(5,11,2,'电子电路 2 · 作业','当天收口，没做完就留好进度。'),
+  rhythm(5,13,2,'周总结 / 查漏','看看遗漏、调整容量，不要求填满两个节次。'),
+  rhythm(6,2,3,'计组 · 新课','本学期计算机补课主线。'),
+  rhythm(6,5,1,'睡个好觉','周六午间恢复。','lunch'),
+  rhythm(6,8,2,'游泳','暂放在 8–9 节，按实际预约时间调整。'),
+  rhythm(6,11,2,'计组 · 上机','把上午学到的内容落到手上；暂放在 11–12 节。'),
+];
+function applyWeeklyPlan(data:Planner):Planner{
+  if(data.appliedUpdates.includes(WEEKLY_PLAN_UPDATE))return data;
+  const habits=[...data.habits];
+  for(const item of WEEKLY_PLAN){
+    const dates={startDate:'2026-09-07',endDate:'2027-01-17'};
+    if(habits.some(h=>h.title===item.title&&h.day===item.day&&h.period===item.period&&h.span===item.span&&h.breakTime===item.breakTime&&h.startDate===dates.startDate&&h.endDate===dates.endDate))continue;
+    let id=newId();while(habits.some(h=>h.id===id))id++;
+    habits.push({...item,...dates,id});
+  }
+  return {...data,habits,appliedUpdates:[...data.appliedUpdates,WEEKLY_PLAN_UPDATE]};
 }
 export const emptyReview=():Review=>({note:'',next:'',feeling:''});
 const range=(end:number)=>Array.from({length:end},(_,i)=>i+1);
@@ -62,13 +100,48 @@ export function schoolCourses(date:Date,termStart='2026-09-07'):Course[]{
 export function weekCourses(data:Planner,date:Date):Course[]{
   const start=monday(date),key=dateKey(start);
   const own=data.schedules[key]??schoolCourses(start,data.termStart);
-  const habits=data.habits.filter(h=>{const occurrence=dateKey(addDays(start,h.day-1));return occurrence>=h.startDate&&occurrence<=h.endDate}).map(h=>({id:h.id,habitId:h.id,day:h.day,period:h.period,span:h.span,title:h.title,kind:'habit' as const}));
-  return [...own,...habits].sort((a,b)=>a.day-b.day||a.period-b.period);
+  const habits=data.habits.filter(h=>{const occurrence=dateKey(addDays(start,h.day-1));return occurrence>=h.startDate&&occurrence<=h.endDate}).map(h=>({id:h.id,habitId:h.id,day:h.day,period:h.period,span:h.span,title:h.title,kind:'habit' as const,breakTime:h.breakTime,note:h.note}));
+  const position=(c:Course)=>c.breakTime==='lunch'?5.5:c.breakTime==='dinner'?10.5:c.period;
+  return [...own,...habits].sort((a,b)=>a.day-b.day||position(a)-position(b));
+}
+export const coursePeriodLabel=(c:Course)=>c.breakTime==='lunch'?'午间休息':c.breakTime==='dinner'?'晚间休息':`第 ${c.period}${c.span>1?'–'+(c.period+c.span-1):''} 节`;
+export function coursesOverlap(a:Course,b:Course){
+  if(a.day!==b.day)return false;
+  if(a.breakTime||b.breakTime)return !!a.breakTime&&a.breakTime===b.breakTime;
+  return a.period<b.period+b.span&&b.period<a.period+a.span;
 }
 export function courseConflicts(courses:Course[]){
-  return courses.filter((a,i)=>courses.some((b,j)=>i!==j&&a.day===b.day&&a.period<b.period+b.span&&b.period<a.period+a.span));
+  return courses.filter((a,i)=>courses.some((b,j)=>i!==j&&coursesOverlap(a,b)));
 }
-export function validCourse(c:Course){return Number.isInteger(c.day)&&c.day>=1&&c.day<=7&&Number.isInteger(c.period)&&c.period>=1&&Number.isInteger(c.span)&&c.span>=1&&c.period+c.span<=15&&!!c.title.trim()}
+export function validCourse(c:Course){return Number.isInteger(c.day)&&c.day>=1&&c.day<=7&&Number.isInteger(c.period)&&c.period>=1&&Number.isInteger(c.span)&&c.span>=1&&c.period+c.span<=15&&!!c.title.trim()&&[undefined,'lunch','dinner'].includes(c.breakTime)&&(c.note===undefined||typeof c.note==='string')}
+export function termConflicts(data:Planner){
+  const results:{date:string;first:Course;second:Course}[]=[];
+  for(let week=0;week<19;week++){
+    const start=addDays(parseDate(data.termStart),week*7),courses=weekCourses(data,start);
+    courses.forEach((a,i)=>courses.slice(i+1).forEach(b=>{if(coursesOverlap(a,b))results.push({date:dateKey(addDays(start,a.day-1)),first:a,second:b})}));
+  }
+  return results;
+}
+export function bufferOccupations(data:Planner){
+  return Array.from({length:19},(_,week)=>{
+    const start=addDays(parseDate(data.termStart),week*7);
+    return weekCourses(data,start).filter(c=>c.day===7||(c.day===3&&!c.breakTime&&c.period<11&&c.period+c.span>6)).map(course=>({date:dateKey(addDays(start,course.day-1)),course}));
+  }).flat();
+}
+// Overlapping cards share their day's column rather than hiding one another.
+export function courseLanes(courses:Course[]){
+  const result=new Map<Course,{lane:number;count:number}>();
+  const pending=new Set(courses);
+  for(const seed of courses){
+    if(!pending.delete(seed))continue;
+    const group=[seed];
+    for(let i=0;i<group.length;i++)for(const other of pending)if(coursesOverlap(group[i],other)){pending.delete(other);group.push(other)}
+    const lanes:Course[][]=[];
+    for(const c of group){let lane=lanes.findIndex(items=>items.every(other=>!coursesOverlap(c,other)));if(lane<0){lane=lanes.length;lanes.push([])}lanes[lane].push(c);result.set(c,{lane,count:0})}
+    group.forEach(c=>{result.get(c)!.count=lanes.length});
+  }
+  return result;
+}
 export function actionableMilestones(data:Planner,today:string){
   return data.milestones.filter(m=>!m.done&&validDate(m.date)&&((validDate(m.actionDate)&&m.actionDate<=today)||m.date<=today)).sort((a,b)=>a.date.localeCompare(b.date));
 }
@@ -95,6 +168,7 @@ export function closeDay(data:Planner,today:string):Planner{return {...data,revi
 
 export const periodRow=(period:number)=>period+1+(period>=6?1:0)+(period>=11?1:0);
 export function courseSegments(c:Course){
+  if(c.breakTime)return [{row:c.breakTime==='lunch'?7:13,span:1,continuation:false}];
   return [[1,5],[6,10],[11,14]].flatMap(([start,end])=>{
     const first=Math.max(start,c.period),last=Math.min(end,c.period+c.span-1);
     return first<=last?[{row:periodRow(first),span:last-first+1,continuation:first>c.period}]:[];
