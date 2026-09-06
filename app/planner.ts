@@ -3,7 +3,7 @@ export type Task = {id:number; title:string; project:string; minutes:number; don
 export type Todo = {id:number; title:string; done:boolean};
 export type Project = {id:number; name:string; color:string; mainline:string; note:string; todos:Todo[]; status?:'active'|'waiting'|'paused'|'done'; progress?:string; next?:string; waiting?:string; revisit?:string};
 export type Course = {id:number; day:number; period:number; span:number; title:string; kind:'course'|'self'|'habit'; habitId?:number; location?:string; teacher?:string; breakTime?:'lunch'|'dinner'; note?:string};
-export type Habit = {id:number; title:string; day:number; period:number; span:number; startDate:string; endDate:string; breakTime?:'lunch'|'dinner'; note?:string};
+export type Habit = {id:number; title:string; day:number; period:number; span:number; startDate:string; endDate:string; breakTime?:'lunch'|'dinner'; note?:string; location?:string; locationDates?:string[]};
 export type Milestone = {id:number; title:string; date:string; hot:boolean; action?:string; actionDate?:string; done?:boolean};
 export type Idea = {id:number; title:string; category:string; note:string};
 export type Review = {note:string; next:string; feeling:string; closedAt?:string};
@@ -26,11 +26,30 @@ export const newId=()=>Date.now()*1000+Math.floor(Math.random()*1000);
 export const emptyPlanner=():Planner=>({version:6,tasks:[],projects:[],schedules:{},habits:[],milestones:[],ideas:[],evidence:{},checkins:{},reviews:{},modes:{},current:{},courseNotes:{},termStart:'2026-09-07',legacy:{},dayNotes:{},appliedUpdates:[]});
 export function applyRequestedUpdates(data:Planner):Planner{
   const update='group-meeting-20260911-20270115';
-  if(data.appliedUpdates.includes(update))return applyWeeklyPlan(data);
+  if(data.appliedUpdates.includes(update))return applyWorkplacePlan(applyWeeklyPlan(data));
   const existing=data.habits.some(h=>h.title==='组会'&&h.day===5&&h.period===1&&h.span===2&&h.startDate==='2026-09-11'&&h.endDate==='2027-01-15');
   const meeting:Habit={id:newId(),title:'组会',day:5,period:1,span:2,startDate:'2026-09-11',endDate:'2027-01-15'};
   const notes=data.dayNotes['2026-12-04']??[];
-  return applyWeeklyPlan({...data,habits:existing?data.habits:[...data.habits,meeting],dayNotes:{...data.dayNotes,'2026-12-04':notes.includes('给组里买早饭')?notes:[...notes,'给组里买早饭']},appliedUpdates:[...data.appliedUpdates,update]});
+  return applyWorkplacePlan(applyWeeklyPlan({...data,habits:existing?data.habits:[...data.habits,meeting],dayNotes:{...data.dayNotes,'2026-12-04':notes.includes('给组里买早饭')?notes:[...notes,'给组里买早饭']},appliedUpdates:[...data.appliedUpdates,update]}));
+}
+export const WORKPLACE_UPDATE='workplace-rhythm-20260906-v1';
+export const WEDNESDAY_WORKPLACE_DATES=['2026-10-28','2026-11-04','2026-11-25'];
+function applyWorkplacePlan(data:Planner):Planner{
+  if(data.appliedUpdates.includes(WORKPLACE_UPDATE))return data;
+  const habits=data.habits.map(h=>{
+    // Update only the requested rhythm's known blocks, preserving unrelated entries.
+    if(!WEEKLY_PLAN.some(item=>item.title===h.title&&item.day===h.day&&item.period===h.period))return h;
+    const next={...h};
+    if(!h.breakTime&&h.title!=='跑步 / 休息'&&(([1,3,4,5].includes(h.day)&&h.period>=11)||h.title==='工位科研'||h.title.startsWith('计组 · ')))next.location='工位';
+    if(h.title==='计组 · 上机'&&h.span===2){next.span=4;next.note='把上午内容落到手上，11–14 节在工位上机；按需要休息，不要求持续工作整晚。';}
+    if(h.title==='DSP · 作业实验'&&h.day===3){next.location='工位';next.locationDates=[...WEDNESDAY_WORKPLACE_DATES];}
+    return next;
+  });
+  if(!habits.some(h=>h.title==='电子电路 2 · 学习'&&h.day===2&&h.period===11&&h.span===2&&h.startDate==='2026-11-02')){
+    let id=newId();while(habits.some(h=>h.id===id))id++;
+    habits.push({id,title:'电子电路 2 · 学习',day:2,period:11,span:2,startDate:'2026-11-02',endDate:'2027-01-17',location:'工位',note:'电子信息基础实验结束后，从第 9 周起安排。作业、预习或复习任选当前需要的一项；13–14 节留空，可按状态决定是否继续。'});
+  }
+  return {...data,habits,appliedUpdates:[...data.appliedUpdates,WORKPLACE_UPDATE]};
 }
 export const WEEKLY_PLAN_UPDATE='weekly-rhythm-20260907-v1';
 const rhythm=(day:number,period:number,span:number,title:string,note:string,breakTime?:Habit['breakTime'])=>({day,period,span,title,note,...(breakTime?{breakTime}:{})});
@@ -100,9 +119,22 @@ export function schoolCourses(date:Date,termStart='2026-09-07'):Course[]{
 export function weekCourses(data:Planner,date:Date):Course[]{
   const start=monday(date),key=dateKey(start);
   const own=data.schedules[key]??schoolCourses(start,data.termStart);
-  const habits=data.habits.filter(h=>{const occurrence=dateKey(addDays(start,h.day-1));return occurrence>=h.startDate&&occurrence<=h.endDate}).map(h=>({id:h.id,habitId:h.id,day:h.day,period:h.period,span:h.span,title:h.title,kind:'habit' as const,breakTime:h.breakTime,note:h.note}));
+  const habits=data.habits.filter(h=>{const occurrence=dateKey(addDays(start,h.day-1));return occurrence>=h.startDate&&occurrence<=h.endDate}).map(h=>({id:h.id,habitId:h.id,day:h.day,period:h.period,span:h.span,title:h.title,kind:'habit' as const,breakTime:h.breakTime,note:h.note,location:!h.locationDates||h.locationDates.includes(dateKey(addDays(start,h.day-1)))?h.location:undefined}));
   const position=(c:Course)=>c.breakTime==='lunch'?5.5:c.breakTime==='dinner'?10.5:c.period;
   return [...own,...habits].sort((a,b)=>a.day-b.day||position(a)-position(b));
+}
+export function workplaceSessions(data:Planner,date:Date){
+  if(!data.appliedUpdates.includes(WORKPLACE_UPDATE))return [];
+  const start=monday(date),courses=weekCourses(data,date);
+  const sessions:{day:number;period:number;span:number;label:string;note:string}[]=[];
+  const available=(day:number,period:number,span:number)=>!courses.some(c=>c.kind==='course'&&coursesOverlap(c,{id:0,day,period,span,title:'工位',kind:'self'}));
+  for(const day of [1,2,3,4,5,6]){
+    const anchors=courses.filter(c=>c.day===day&&c.kind!=='course'&&!c.breakTime&&c.period>=11&&c.location==='工位');
+    if(anchors.length&&available(day,11,4))sessions.push({day,period:11,span:4,label:'晚间 · 工位',note:day===3||day===4?'先在工位学习，之后跑步或休息。':day===2?'11–12 节电子电路 2；13–14 节不预设任务。':'按已有学习安排进行，期间可以休息。'});
+  }
+  if(courses.some(c=>c.day===6&&c.title==='计组 · 新课'&&c.location==='工位')&&available(6,2,3))sessions.push({day:6,period:2,span:3,label:'2–4 节 · 工位',note:'计组新课。'});
+  if(WEDNESDAY_WORKPLACE_DATES.includes(dateKey(addDays(start,2)))&&courses.some(c=>c.day===3&&c.title==='DSP · 作业实验'&&c.location==='工位')&&available(3,1,5))sessions.push({day:3,period:1,span:5,label:'整个上午 · 工位',note:'1–2 节先做 DSP，其余时段留在工位，具体任务当时再选。'});
+  return sessions.sort((a,b)=>a.day-b.day||a.period-b.period);
 }
 export const coursePeriodLabel=(c:Course)=>c.breakTime==='lunch'?'午间休息':c.breakTime==='dinner'?'晚间休息':`第 ${c.period}${c.span>1?'–'+(c.period+c.span-1):''} 节`;
 export function coursesOverlap(a:Course,b:Course){
@@ -113,7 +145,7 @@ export function coursesOverlap(a:Course,b:Course){
 export function courseConflicts(courses:Course[]){
   return courses.filter((a,i)=>courses.some((b,j)=>i!==j&&coursesOverlap(a,b)));
 }
-export function validCourse(c:Course){return Number.isInteger(c.day)&&c.day>=1&&c.day<=7&&Number.isInteger(c.period)&&c.period>=1&&Number.isInteger(c.span)&&c.span>=1&&c.period+c.span<=15&&!!c.title.trim()&&[undefined,'lunch','dinner'].includes(c.breakTime)&&(c.note===undefined||typeof c.note==='string')}
+export function validCourse(c:Course){return Number.isInteger(c.day)&&c.day>=1&&c.day<=7&&Number.isInteger(c.period)&&c.period>=1&&Number.isInteger(c.span)&&c.span>=1&&c.period+c.span<=15&&!!c.title.trim()&&[undefined,'lunch','dinner'].includes(c.breakTime)&&(c.note===undefined||typeof c.note==='string')&&(c.location===undefined||typeof c.location==='string')}
 export function termConflicts(data:Planner){
   const results:{date:string;first:Course;second:Course}[]=[];
   for(let week=0;week<19;week++){
@@ -206,7 +238,7 @@ export function validatePlanner(value:unknown):Planner{
   if(!obj(value)||value.version!==6||!validDate(value.termStart))throw new Error('这份备份的格式或版本不适用。');
   const tasksOk=array(value.tasks,t=>id(t.id)&&text(t.title)&&text(t.project)&&typeof t.done==='boolean'&&typeof t.minutes==='number'&&Number.isFinite(t.minutes)&&t.minutes>=0&&t.minutes<=1440&&(t.step===undefined||text(t.step))&&(t.plannedFor===undefined||validDate(t.plannedFor))&&(t.completedAt===undefined||validDate(t.completedAt))&&(t.projectId===undefined||id(t.projectId))&&(t.projectTodoId===undefined||id(t.projectTodoId)));
   const projectsOk=array(value.projects,p=>id(p.id)&&text(p.name)&&text(p.mainline)&&text(p.note)&&text(p.color)&&array(p.todos,t=>id(t.id)&&text(t.title)&&typeof t.done==='boolean')&&['active','waiting','paused','done',undefined].includes(p.status as string|undefined)&&['next','progress','waiting','revisit'].every(k=>p[k]===undefined||text(p[k])));
-  const valid=tasksOk&&projectsOk&&map(value.schedules,x=>array(x,courseValid))&&array(value.habits,h=>id(h.id)&&text(h.title)&&validDate(h.startDate)&&validDate(h.endDate)&&h.startDate<=h.endDate&&validCourse({...h,kind:'habit'} as Course))&&array(value.milestones,m=>id(m.id)&&text(m.title)&&text(m.date)&&typeof m.hot==='boolean'&&(m.action===undefined||text(m.action))&&(m.actionDate===undefined||text(m.actionDate))&&(m.done===undefined||typeof m.done==='boolean'))&&array(value.ideas,i=>id(i.id)&&text(i.title)&&text(i.category)&&text(i.note))&&map(value.evidence,stringList)&&map(value.checkins,stringList)&&map(value.reviews,r=>obj(r)&&text(r.note)&&text(r.next)&&text(r.feeling)&&(r.closedAt===undefined||text(r.closedAt)))&&map(value.modes,x=>['steady','sprint','recovery'].includes(String(x)))&&map(value.current,x=>x===null||id(x))&&map(value.courseNotes,text)&&map(value.legacy,text);
+  const valid=tasksOk&&projectsOk&&map(value.schedules,x=>array(x,courseValid))&&array(value.habits,h=>id(h.id)&&text(h.title)&&validDate(h.startDate)&&validDate(h.endDate)&&h.startDate<=h.endDate&&(h.locationDates===undefined||(Array.isArray(h.locationDates)&&h.locationDates.every(validDate)))&&validCourse({...h,kind:'habit'} as Course))&&array(value.milestones,m=>id(m.id)&&text(m.title)&&text(m.date)&&typeof m.hot==='boolean'&&(m.action===undefined||text(m.action))&&(m.actionDate===undefined||text(m.actionDate))&&(m.done===undefined||typeof m.done==='boolean'))&&array(value.ideas,i=>id(i.id)&&text(i.title)&&text(i.category)&&text(i.note))&&map(value.evidence,stringList)&&map(value.checkins,stringList)&&map(value.reviews,r=>obj(r)&&text(r.note)&&text(r.next)&&text(r.feeling)&&(r.closedAt===undefined||text(r.closedAt)))&&map(value.modes,x=>['steady','sprint','recovery'].includes(String(x)))&&map(value.current,x=>x===null||id(x))&&map(value.courseNotes,text)&&map(value.legacy,text);
   if(!valid||!map(value.dayNotes??{},stringList)||!stringList(value.appliedUpdates??[]))throw new Error('数据有缺失或格式错误，原有记录没有被替换。');
   const data={...value,dayNotes:value.dayNotes??{},appliedUpdates:value.appliedUpdates??[]} as Planner;
   for(const items of [data.tasks,data.projects,data.habits,data.milestones,data.ideas])if(new Set(items.map(x=>x.id)).size!==items.length)throw new Error('备份中存在重复记录，未导入。');

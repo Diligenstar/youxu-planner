@@ -10,7 +10,7 @@ test('weekly rhythm migrates existing devices once and retains personal records'
   source.tasks=[{id:4,title:'原任务',project:'科研',minutes:10,done:false}];
   source.habits=[{...WEEKLY_PLAN[0],id:9,startDate:'2026-09-07',endDate:'2027-01-17'}];
   const result=applyRequestedUpdates(source);
-  assert.equal(result.habits.length,WEEKLY_PLAN.length);
+  assert.equal(result.habits.length,WEEKLY_PLAN.length+1);
   assert.equal(result.habits.find(h=>h.id===9).title,WEEKLY_PLAN[0].title);
   assert.deepEqual(result.schedules,source.schedules);
   assert.deepEqual(result.tasks,source.tasks);

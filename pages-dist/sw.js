@@ -1,7 +1,7 @@
 const CACHE='youxu-v7';
 const BASE=self.registration.scope;
 // The Pages build fills this list with the exact hashed JS/CSS files.
-const BUILD_ASSETS=["assets/index-BXouTAz2.js","assets/index-BfEXfqdy.css"];
+const BUILD_ASSETS=["assets/index-C0mPg3Dy.js","assets/index-BnBDaZYa.css"];
 const SHELL=[BASE,BASE+'manifest.webmanifest',BASE+'icon-192.png',BASE+'icon-512.png',...BUILD_ASSETS.map(path=>BASE+path)];
 self.addEventListener('push',event=>{
   let data={};try{data=event.data?.json()??{}}catch{data={body:event.data?.text()??''}}

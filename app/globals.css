@@ -21,3 +21,7 @@
 .course-block.break-block small{display:none}
 .term-check{margin:8px 0 18px}
 .term-check .list-row{width:100%;text-align:left}
+.workplace-strip{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.workplace-strip>div{display:grid;gap:2px;max-width:100%;padding:8px 12px;border-radius:9px;background:var(--soft)}
+.workplace-strip strong{font-size:13px;font-weight:500}
+.workplace-strip small{font-size:12px}
